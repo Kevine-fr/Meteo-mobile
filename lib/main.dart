@@ -1,20 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:intl/intl.dart'; 
+import 'package:intl/intl.dart';
 
 void main() {
   runApp(WeatherApp());
 }
 
 class WeatherApp extends StatelessWidget {
+  const WeatherApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Météo',
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: Color(0xFF0C1224),
+        scaffoldBackgroundColor: const Color(0xFF0C1224),
       ),
       home: WeatherScreen(),
     );
@@ -22,6 +24,8 @@ class WeatherApp extends StatelessWidget {
 }
 
 class WeatherScreen extends StatefulWidget {
+  const WeatherScreen({super.key});
+
   @override
   _WeatherScreenState createState() => _WeatherScreenState();
 }
@@ -29,34 +33,68 @@ class WeatherScreen extends StatefulWidget {
 class _WeatherScreenState extends State<WeatherScreen> {
   String city = "";
   Map<String, dynamic>? weatherData;
-  final String apiKey =
-      'c77b620170a24242bdd140558243103'; 
+  final String apiKey = 'c77b620170a24242bdd140558243103';
   bool isTextFieldVisible = false;
+  bool isLoading = false;
 
   void fetchWeather() async {
+    setState(() {
+      isLoading = true;
+    });
+    
     final url = Uri.parse(
         'https://api.weatherapi.com/v1/forecast.json?key=$apiKey&q=$city&days=7&aqi=yes&alerts=yes&lang=fr');
     final response = await http.get(url);
 
     if (response.statusCode == 200) {
-      // Décodage de la réponse en UTF-8
       final decodedResponse = json.decode(utf8.decode(response.bodyBytes));
       setState(() {
+        isLoading = false;
         weatherData = decodedResponse;
       });
     } else {
-      print('Erreur lors de la récupération des données météo');
+      setState(() {
+        weatherData = null;
+      });
+      _showError(
+          context, 'Ville introuvable. Veuillez vérifier le nom et réessayer.');
     }
+  }
+
+  void _showError(BuildContext context, String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Erreur'),
+          content: Text(message),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Météo'),
-        backgroundColor: Color(0xFF0C1224),
+        title: const Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            Text('Météo'),
+          ],
+        ),
+        backgroundColor: const Color(0xFF0C1224),
       ),
       body: SingleChildScrollView(
+        scrollDirection: Axis.vertical,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 15),
           child: Column(
@@ -65,7 +103,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
                 Column(
                   children: [
                     TextField(
-                      style: TextStyle(color: Colors.white),
+                      style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(
                         hintText: 'Saisissez une ville...',
                         suffixIcon: IconButton(
@@ -76,25 +114,33 @@ class _WeatherScreenState extends State<WeatherScreen> {
                               _showAlert(context);
                             }
                           },
-                          icon: Icon(Icons.search),
+                          icon: const Icon(Icons.search),
                         ),
-                        hintStyle: TextStyle(color: Colors.white54),
+                        hintStyle: const TextStyle(color: Colors.white54),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10.0),
                         ),
                         filled: true,
-                        fillColor: Color(0xFF1D2340),
+                        fillColor: const Color(0xFF1D2340),
                       ),
                       onChanged: (value) {
                         city = value;
                       },
-                    ),
+                      onSubmitted: (value) {
+                        // Pour activer "Entrée" pour la recherche
+                        if (city.isNotEmpty) {
+                          fetchWeather();
+                        } else {
+                          _showAlert(context);
+                        }
+                      },
+                    )
                   ],
                 ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               weatherData != null
                   ? buildWeatherInfo()
-                  : Center(
+                  : const Center(
                       child: Text('Entrez une ville pour afficher la météo.',
                           style: TextStyle(color: Colors.white))),
             ],
@@ -109,7 +155,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
               isTextFieldVisible = !isTextFieldVisible;
             });
           },
-          backgroundColor: Color(0xFF567DF4),
+          backgroundColor: const Color(0xFF567DF4),
           child: Icon(isTextFieldVisible ? Icons.close : Icons.search),
         ),
       ),
@@ -121,11 +167,11 @@ class _WeatherScreenState extends State<WeatherScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Champ obligatoire'),
-          content: Text('Saisissez une ville...'),
+          title: const Text('Champ obligatoire'),
+          content: const Text('Saisissez une ville...'),
           actions: <Widget>[
             TextButton(
-              child: Text('OK'),
+              child: const Text('OK'),
               onPressed: () {
                 Navigator.of(context).pop();
               },
@@ -141,64 +187,68 @@ class _WeatherScreenState extends State<WeatherScreen> {
     final current = weatherData!['current'];
     final forecast = weatherData!['forecast']['forecastday'];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '${location['name']}, ${location['country']}',
-          style: TextStyle(
-              fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
-        ),
-        SizedBox(height: 10),
-        Text(
-          'Aujourd\'hui à ${location['localtime']}',
-          style: TextStyle(color: Colors.white54),
-        ),
-        SizedBox(height: 20),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${current['temp_c']}°C',
-                  style: TextStyle(fontSize: 64, color: Colors.white),
-                ),
-                Text(current['condition']['text'],
-                    style: TextStyle(fontSize: 20, color: Colors.white)),
-              ],
-            ),
-            Column(
-              children: [
-                Image.network(
-                  'https:${current['condition']['icon']}',
-                  width: 60,
-                  height: 60,
-                ),
-                Text('↑: ${forecast[0]['day']['maxtemp_c']}°C',
-                    style: TextStyle(color: Colors.white)),
-                Text('↓: ${forecast[0]['day']['mintemp_c']}°C',
-                    style: TextStyle(color: Colors.white)),
-              ],
-            ),
-          ],
-        ),
-        SizedBox(height: 20),
-        buildHourlyForecast(forecast[0]),
-        SizedBox(height: 15),
-        buildWeeklyForecast(forecast),
-      ],
-    );
-  }
+    return isLoading ?
+      const Center(
+        child: CircularProgressIndicator()
+        ) :
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '${location['name']}, ${location['country']}',
+            style: const TextStyle(
+                fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Aujourd\'hui ${location['localtime']}',
+            style: const TextStyle(color: Colors.white54),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${current['temp_c']}°C',
+                    style: const TextStyle(fontSize: 64, color: Colors.white),
+                  ),
+                  Text(current['condition']['text'],
+                      style: const TextStyle(fontSize: 20, color: Colors.white)),
+                ],
+              ),
+              Column(
+                children: [
+                  Image.network(
+                    'https:${current['condition']['icon']}',
+                    width: 60,
+                    height: 60,
+                  ),
+                  Text('↑: ${forecast[0]['day']['maxtemp_c']}°C',
+                      style: const TextStyle(color: Colors.white)),
+                  Text('↓: ${forecast[0]['day']['mintemp_c']}°C',
+                      style: const TextStyle(color: Colors.white)),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          buildHourlyForecast(forecast[0]),
+          const SizedBox(height: 15),
+          buildWeeklyForecast(forecast),
+        ],
+      );
+    }
 
   Widget buildHourlyForecast(dynamic dayForecast) {
     List<dynamic> hours = dayForecast['hour'];
 
     return Container(
-      padding: EdgeInsets.only(top: 15, bottom: 15, left: 5),
+      padding: const EdgeInsets.only(top: 15, bottom: 15, left: 5),
       decoration: BoxDecoration(
-        color: Color(0xFF1D2340),
+        color: const Color(0xFF1D2340),
         borderRadius: BorderRadius.circular(20),
       ),
       child: SingleChildScrollView(
@@ -206,24 +256,24 @@ class _WeatherScreenState extends State<WeatherScreen> {
         child: Row(
           children: hours
               .map<Widget>((hour) {
-                return Container(
+                return SizedBox(
                   width: 80,
                   child: Column(
                     children: [
                       Text('${hour['time'].split(' ')[1]}',
-                          style: TextStyle(color: Colors.white)),
-                      SizedBox(height: 7.5),
+                          style: const TextStyle(color: Colors.white)),
+                      const SizedBox(height: 7.5),
                       Image.network(
                         'https:${hour['condition']['icon']}',
                         width: 40,
                         height: 40,
                       ),
-                      SizedBox(height: 3),
+                      const SizedBox(height: 3),
                       Text('${hour['temp_c']}°C',
-                          style: TextStyle(color: Colors.white)),
-                      SizedBox(height: 3),
+                          style: const TextStyle(color: Colors.white)),
+                      const SizedBox(height: 3),
                       Text('${hour['chance_of_rain']}%',
-                          style: TextStyle(color: Colors.white)),
+                          style: const TextStyle(color: Colors.white)),
                     ],
                   ),
                 );
@@ -242,19 +292,27 @@ class _WeatherScreenState extends State<WeatherScreen> {
   }
 
   Widget buildWeeklyForecast(List<dynamic> forecast) {
-    List<String> joursSemaine = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+    List<String> joursSemaine = [
+      'Dimanche',
+      'Lundi',
+      'Mardi',
+      'Mercredi',
+      'Jeudi',
+      'Vendredi',
+      'Samedi'
+    ];
 
     return Column(
       children: forecast.map<Widget>((day) {
         DateTime date = DateTime.parse(day['date']);
         String jourSemaine = joursSemaine[date.weekday % 7];
-        String formattedDate = DateFormat('dd/MM/yyyy').format(date); 
+        String formattedDate = DateFormat('dd/MM/yyyy').format(date);
 
         return Container(
-          padding: EdgeInsets.all(15),
-          margin: EdgeInsets.only(bottom: 8.5),
+          padding: const EdgeInsets.all(15),
+          margin: const EdgeInsets.only(bottom: 8.5),
           decoration: BoxDecoration(
-            color: Color(0xFF1D2340),
+            color: const Color(0xFF1D2340),
             borderRadius: BorderRadius.circular(12.5),
           ),
           child: Row(
@@ -265,11 +323,14 @@ class _WeatherScreenState extends State<WeatherScreen> {
                 children: [
                   Text(
                     jourSemaine,
-                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold),
                   ),
                   Text(
                     formattedDate,
-                    style: TextStyle(color: Colors.grey, fontSize: 14),
+                    style: const TextStyle(color: Colors.grey, fontSize: 14),
                   ),
                 ],
               ),
@@ -280,14 +341,14 @@ class _WeatherScreenState extends State<WeatherScreen> {
                     width: 40,
                     height: 40,
                   ),
-                  SizedBox(width: 10),
+                  const SizedBox(width: 10),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text('↑: ${day['day']['maxtemp_c']}°C',
-                          style: TextStyle(color: Colors.white)),
+                          style: const TextStyle(color: Colors.white)),
                       Text('↓: ${day['day']['mintemp_c']}°C',
-                          style: TextStyle(color: Colors.white)),
+                          style: const TextStyle(color: Colors.white)),
                     ],
                   ),
                 ],
