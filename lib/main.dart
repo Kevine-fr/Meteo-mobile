@@ -41,7 +41,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
     setState(() {
       isLoading = true;
     });
-    
+
     final url = Uri.parse(
         'https://api.weatherapi.com/v1/forecast.json?key=$apiKey&q=$city&days=7&aqi=yes&alerts=yes&lang=fr');
     final response = await http.get(url);
@@ -236,8 +236,13 @@ class _WeatherScreenState extends State<WeatherScreen> {
           ),
           const SizedBox(height: 20),
           buildHourlyForecast(forecast[0]),
-          const SizedBox(height: 15),
+          const SizedBox(height: 25),
+          const Text('Température des jours' ,
+          style: TextStyle(
+                fontSize: 21, color: Colors.white),),
+          const SizedBox(height: 5),
           buildWeeklyForecast(forecast),
+          const SizedBox(height: 20),
         ],
       );
     }
