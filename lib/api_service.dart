@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:geolocator/geolocator.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class WeatherService {
-  static const String apiKey = 'c77b620170a24242bdd140558243103';
+  static String apiKey = dotenv.env['API_KEY'] ?? 'apikey';
   static const String baseUrl = 'https://api.weatherapi.com/v1/forecast.json';
 
   Future<Map<String, dynamic>> fetch(String query) async {
