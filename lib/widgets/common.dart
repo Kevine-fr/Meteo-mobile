@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../main.dart';
 
@@ -161,261 +160,6 @@ class StatTile extends StatelessWidget {
 }
 
 /// =====================================================
-///  FOND ATMOSPHÉRIQUE (gradient mesh + grille)
-/// =====================================================
-class AtmosphereBackground extends StatelessWidget {
-  final String conditionText;
-  final bool isDay;
-  const AtmosphereBackground({super.key, required this.conditionText, required this.isDay});
-
-  @override
-  Widget build(BuildContext context) {
-    final cond = conditionText.toLowerCase();
-    final isRainy = cond.contains('pluie') || cond.contains('averse') || cond.contains('bruine');
-    final isSnowy = cond.contains('neige');
-    final isSunny = (cond.contains('soleil') || cond.contains('ensoleill')) && isDay;
-
-    Color glow1 = AppColors.accent;
-    Color glow2 = AppColors.accent2;
-    if (isRainy) {
-      glow1 = AppColors.rain;
-      glow2 = AppColors.accent2;
-    } else if (isSunny) {
-      glow1 = const Color(0xFFE8B86E);
-      glow2 = AppColors.accent;
-    } else if (isSnowy) {
-      glow1 = const Color(0xFFB8C4D8);
-      glow2 = AppColors.accent2;
-    }
-
-    return Stack(children: [
-      // Base
-      Positioned.fill(
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 1200),
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [AppColors.bg0, AppColors.bg1, AppColors.bg0],
-              stops: [0, 0.5, 1],
-            ),
-          ),
-        ),
-      ),
-      // Glows
-      Positioned(
-        top: -120,
-        right: -80,
-        child: _GlowOrb(color: glow1, size: 380),
-      ),
-      Positioned(
-        bottom: -120,
-        left: -80,
-        child: _GlowOrb(color: glow2, size: 320, opacity: 0.18),
-      ),
-      // Grille
-      Positioned.fill(
-        child: CustomPaint(painter: _GridPainter()),
-      ),
-      // Particules selon la météo
-      if (isRainy) const Positioned.fill(child: _RainParticles()),
-      if (isSnowy) const Positioned.fill(child: _SnowParticles()),
-    ]);
-  }
-}
-
-class _GlowOrb extends StatelessWidget {
-  final Color color;
-  final double size;
-  final double opacity;
-  const _GlowOrb({required this.color, required this.size, this.opacity = 0.22});
-
-  @override
-  Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.0, end: 1.0),
-      duration: const Duration(milliseconds: 1500),
-      curve: Curves.easeOutCubic,
-      builder: (_, t, __) => Opacity(
-        opacity: t,
-        child: Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: RadialGradient(
-              colors: [color.withOpacity(opacity), color.withOpacity(0)],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _GridPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xFFE8E6E0).withOpacity(0.04)
-      ..strokeWidth = 1;
-    const step = 48.0;
-    for (double x = 0; x < size.width; x += step) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-    for (double y = 0; y < size.height; y += step) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_) => false;
-}
-
-/// =====================================================
-///  PARTICULES (pluie & neige)
-/// =====================================================
-class _RainParticles extends StatefulWidget {
-  const _RainParticles();
-  @override
-  State<_RainParticles> createState() => _RainParticlesState();
-}
-
-class _RainParticlesState extends State<_RainParticles> with SingleTickerProviderStateMixin {
-  late AnimationController _ctrl;
-  final List<_Drop> _drops = [];
-  final _rand = math.Random();
-
-  @override
-  void initState() {
-    super.initState();
-    for (int i = 0; i < 60; i++) {
-      _drops.add(_Drop(
-        x: _rand.nextDouble(),
-        y: _rand.nextDouble(),
-        speed: 0.6 + _rand.nextDouble() * 0.8,
-        len: 14 + _rand.nextDouble() * 12,
-      ));
-    }
-    _ctrl = AnimationController(vsync: this, duration: const Duration(seconds: 3))
-      ..repeat();
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _ctrl,
-      builder: (_, __) => CustomPaint(
-        painter: _RainPainter(_drops, _ctrl.value),
-        size: Size.infinite,
-      ),
-    );
-  }
-}
-
-class _Drop {
-  double x, y, speed, len;
-  _Drop({required this.x, required this.y, required this.speed, required this.len});
-}
-
-class _RainPainter extends CustomPainter {
-  final List<_Drop> drops;
-  final double t;
-  _RainPainter(this.drops, this.t);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = AppColors.rain.withOpacity(0.35)
-      ..strokeWidth = 1
-      ..strokeCap = StrokeCap.round;
-    for (final d in drops) {
-      final y = ((d.y + t * d.speed) % 1.1) * size.height - 20;
-      final x = d.x * size.width;
-      canvas.drawLine(Offset(x, y), Offset(x, y + d.len), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_RainPainter o) => true;
-}
-
-class _SnowParticles extends StatefulWidget {
-  const _SnowParticles();
-  @override
-  State<_SnowParticles> createState() => _SnowParticlesState();
-}
-
-class _SnowParticlesState extends State<_SnowParticles> with SingleTickerProviderStateMixin {
-  late AnimationController _ctrl;
-  final List<_Flake> _flakes = [];
-  final _rand = math.Random();
-
-  @override
-  void initState() {
-    super.initState();
-    for (int i = 0; i < 40; i++) {
-      _flakes.add(_Flake(
-        x: _rand.nextDouble(),
-        y: _rand.nextDouble(),
-        speed: 0.05 + _rand.nextDouble() * 0.15,
-        size: 1.5 + _rand.nextDouble() * 2,
-        wobble: _rand.nextDouble() * math.pi * 2,
-      ));
-    }
-    _ctrl = AnimationController(vsync: this, duration: const Duration(seconds: 12))..repeat();
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _ctrl,
-      builder: (_, __) => CustomPaint(
-        painter: _SnowPainter(_flakes, _ctrl.value),
-        size: Size.infinite,
-      ),
-    );
-  }
-}
-
-class _Flake {
-  double x, y, speed, size, wobble;
-  _Flake({required this.x, required this.y, required this.speed, required this.size, required this.wobble});
-}
-
-class _SnowPainter extends CustomPainter {
-  final List<_Flake> flakes;
-  final double t;
-  _SnowPainter(this.flakes, this.t);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = AppColors.fg.withOpacity(0.5);
-    for (final f in flakes) {
-      final y = ((f.y + t * f.speed * 8) % 1.1) * size.height - 10;
-      final x = (f.x + math.sin((t * 2 * math.pi) + f.wobble) * 0.03) * size.width;
-      canvas.drawCircle(Offset(x, y), f.size, paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_SnowPainter o) => true;
-}
-
-/// =====================================================
 ///  TAB NAVIGATION (bas) avec indicateur animé
 /// =====================================================
 class AnimatedBottomNav extends StatelessWidget {
@@ -447,16 +191,19 @@ class AnimatedBottomNav extends StatelessWidget {
             ),
           ],
         ),
+        clipBehavior: Clip.antiAlias,
         padding: const EdgeInsets.all(7),
         child: LayoutBuilder(builder: (ctx, c) {
-          final itemW = (c.maxWidth - 14) / _items.length;
+          // c.maxWidth est déjà la largeur intérieure (padding 7 appliqué)
+          final itemW = c.maxWidth / _items.length;
           return SizedBox(
             height: 56,
             child: Stack(
               children: [
                 AnimatedPositioned(
-                  duration: const Duration(milliseconds: 500),
-                  curve: Curves.elasticOut,
+                  duration: const Duration(milliseconds: 550),
+                  // easeOutBack : léger rebond, pas de dépassement excessif
+                  curve: Curves.easeOutBack,
                   left: currentIndex * itemW,
                   top: 0,
                   bottom: 0,

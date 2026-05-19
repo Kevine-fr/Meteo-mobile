@@ -7,6 +7,7 @@ import 'pages/hourly_page.dart';
 import 'pages/forecast_page.dart';
 import 'pages/details_page.dart';
 import 'widgets/common.dart';
+import 'widgets/weather_scenes.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -108,10 +109,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return Scaffold(
       backgroundColor: AppColors.bg0,
       body: Stack(children: [
-        // Fond atmosphérique
+        // Fond atmosphérique dynamique
         if (_data != null)
-          AtmosphereBackground(
-            conditionText: _data!['current']['condition']['text'],
+          WeatherBackground(
+            conditionCode: (_data!['current']['condition']['code'] as num).toInt(),
             isDay: _data!['current']['is_day'] == 1,
           )
         else
@@ -254,7 +255,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   children: [
                     TextSpan(
                       text: loc['name'],
-                      style: AppText.display(24, w: FontWeight.w400, italic: true, color: AppColors.accent),
+                      style: AppText.display(24, w: FontWeight.w400, color: AppColors.accent),
                     ),
                     TextSpan(text: ', ', style: AppText.display(24, w: FontWeight.w300)),
                     TextSpan(text: loc['region'], style: AppText.display(24, w: FontWeight.w300)),

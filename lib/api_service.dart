@@ -3,7 +3,6 @@ import 'package:http/http.dart' as http;
 import 'package:geolocator/geolocator.dart';
 
 class WeatherService {
-  // ⚠️ Mets ta propre clé ici (déjà conservée depuis ton code)
   static const String apiKey = 'c77b620170a24242bdd140558243103';
   static const String baseUrl = 'https://api.weatherapi.com/v1/forecast.json';
 
